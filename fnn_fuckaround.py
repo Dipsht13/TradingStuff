@@ -15,6 +15,9 @@ performance to ~49% and the loss function noticeably plateaus in the final
 
 Update: Fixed my fuck up in the MACD calc and got ~51% success rate with the
         long run time version of the script.
+        
+Update: Normalizing the input data gets ~50.5% success rate with the short 
+        run time version.
 
 @author: amudek
 """
@@ -68,6 +71,7 @@ def NormalizeDfCols(df):
     
     import pandas as pd
     
+    df = df.copy()
     #NOTE: Assumes are columns are numeric in the input df.
     for col in df.columns:
         max_abs_val = max(abs(df[col]))
@@ -80,12 +84,14 @@ def NormalizeDfColsByGroup(df, groupings):
     
     import pandas as pd
     
+    df = df.copy()
+    
     all_cols_in_a_group = []
     #first find scalings by group
     for group in groupings:
         max_abs_val = 1
         for col in group:
-            all_grouped_cols.append(col)
+            all_cols_in_a_group.append(col)
             local_max_abs_val = max(abs(df[col]))
             max_abs_val = max([max_abs_val, local_max_abs_val])
         #now we have the scaling factor for the group; apply it to each col
@@ -94,7 +100,7 @@ def NormalizeDfColsByGroup(df, groupings):
             
     
     loner_cols = list(set(df.columns) - set(all_cols_in_a_group))
-    df[loner_cols] = NormalizedDfCols(df[loner_cols])    
+    df[loner_cols] = NormalizeDfCols(df[loner_cols])    
     
     return df
 
@@ -180,7 +186,11 @@ y_dat = one_week_dat['1-week'].copy()
 x_dat = x_dat.iloc[-2100:].copy()
 y_dat = y_dat.iloc[-2100:].copy()
 
-x_dat = NormalizeDfCols(x_dat)
+groupings_for_normalization = [['SMA', 'LowerBoll', 'UpperBoll', 'EMA'],
+                               ['ADX', '+DI', '-DI'],
+                               ['MACD', 'Signal'],
+                               ['AroonUp', 'AroonDown']]
+x_dat = NormalizeDfColsByGroup(x_dat, groupings_for_normalization)
 
 x_dat = x_dat.values
 y_dat = y_dat.values
@@ -230,14 +240,17 @@ y_test = torch.LongTensor(y_test.astype(int)) #long (int) tensor
 criterion = nn.CrossEntropyLoss() #need to look this up
 #choose optimizer -- going to use the Adam Optimizer here
 #                    lr = learning rate (if error doesn't go down after a bunch of iterations, lower our learning rate)
-optimizer = torch.optim.Adam(model.parameters(), lr = 0.000001)
+optimizer = torch.optim.Adam(model.parameters(), lr = 0.001)
 #NOTE: The lower the learning rate, the longer it will take to train
+#NOTE: Can also perform worse if lr is too low. Idk why but good rule of 
+#      thumb is don't go lower than 1e-4?
 
 
 #now get training
 #NOTE: Epoch is one run through all training data in our network (one iteration)
-epochs = 100000#0<--adding another zero increases the run time to ~1 hr but only improves the success rate to ~49%
+epochs = 1000000#0<--adding another zero increases the run time to ~1 hr but only improves the success rate to ~49%
 losses = [] #list to track losses with each epoch
+loop_start = time.time()
 for i in range(epochs):
     #go forward and get a prediction
     y_pred = model.forward(x_train)
@@ -246,16 +259,23 @@ for i in range(epochs):
     loss = criterion(y_pred, y_train) #predicted values vs. truth values
     losses.append(float(loss.detach())) #.detach().numpy() converts pytorch tensor to number
     
-    #print every 10 epochs to gauge progress
+    #print every n epochs to gauge progress
     if i % 1000 == 0:
-        print('Epoch: ' + str(i), end = '; ')
-        print('Loss: ' + str(float(loss.detach())))
+        
+        time_per_iter = (time.time() - loop_start) / (i+1)
+        time_remaining = (epochs - i) * time_per_iter / 60
+        
+        print('\r  ' + str(round(100*i/epochs, 2)) + '%', end = '    ')
+        print('Loss: ' + str(float(loss.detach())), end = '    ')
+        print(str(round(time_remaining, 2)) + ' min remaining', end = '')
     
     #Use some back propagationto fine tune the weights (take the error rate of
     # forward prop and feed it back into the network)
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
+    
+print('\n')
     
 
 print('\nTesting...', end = '')
@@ -281,6 +301,13 @@ with torch.no_grad():
 #         print('Output: ' + str(y_val))
         
 print('Got ' + str(correct) + '/' + str(total) + ' (' + str(round(correct/total*100, 2)) + '%) correct.')
+
+
+from datetime import datetime
+now = datetime.now()
+out_name = 'fnn_fuckaround-' + str(now.year) + '_' + str(now.month) + '_' +\
+                    str(now.day) + '-' + str(now.hour) + '_' + str(now.minute)
+torch.save(model.state_dict(), 'saved_nns/' + out_name)
 
 
 print('Run time: ' + str(round((time.time() - start)/60, 2)) + ' min')
