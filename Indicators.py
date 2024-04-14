@@ -447,6 +447,54 @@ def AverageDirectionalIndex(df, n_rows_for_adx = 14):
     return output_df
   
 
+def EMAOnList(val_list, average_over_n, weight = 2):
+    """
+    Utility function for MACD.
+
+    Parameters
+    ----------
+    val_list : List
+        List of numerical values.
+    average_over_n : Integer
+        Number of consecutive values in the list to average over at a time.
+    weight : Integer
+        Weighting value to compute the weighting multiplier, k.
+
+    Returns
+    -------
+    emas : List
+        List of numbers containing the thing you asked for.
+
+    """
+    import numpy as np
+    
+    k = weight / (average_over_n + 1)
+    
+    #initial rows (average_over_n - 1) will be blank since we need trailing data
+    emas = [np.nan] * (average_over_n - 1)
+    
+    #need a starting point; start with an SMA value
+    starting_ix = average_over_n
+    trailing_ema = np.mean(val_list[:starting_ix])
+    emas.append(trailing_ema)
+    
+    #need to make sure we have a non-nan starting point
+    while np.isnan(trailing_ema):
+        starting_ix += 1
+        trailing_ema = np.mean(val_list[starting_ix - average_over_n : starting_ix])
+        emas.append(trailing_ema)
+    
+    #now that we have a non-nan starting point, compute the emas
+    for ix in range(starting_ix, len(df)):
+        ema = k * val_list[ix] + trailing_ema * (1 - k)
+        # ema = k * (df[col].iloc[ix] - previous) + previous
+        emas.append(ema)
+        
+        trailing_ema = ema
+     
+    return emas
+
+
 def MACD(df, col = 'Close', ema1_period = 12, ema2_period = 26, signal_period = 9):
     """
     Function to compute the Moving Average Convergence Divergence indicator.
@@ -494,7 +542,7 @@ def MACD(df, col = 'Close', ema1_period = 12, ema2_period = 26, signal_period = 
     macd = list(np.array(ema1) - np.array(ema2))
     
     #also need the signal line
-    signal = EMA(df, col, signal_period)
+    signal = EMAOnList(macd, signal_period)
     
     #finally subtract the Signal from the MACD to get the histogram data
     histogram = list(np.array(macd) - np.array(signal))
