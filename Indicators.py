@@ -356,10 +356,10 @@ def SMAOnList(val_list, average_over_n):
     """
     import numpy as np
     
-    smas = [np.nan] * n_rows_for_avg
+    smas = [np.nan] * average_over_n
     
-    for ix in range(n_rows_for_avg, len(val_list)):
-        sma = np.array(val_list[ix - n_rows_for_avg : ix]).sum() / n_rows_for_avg
+    for ix in range(average_over_n, len(val_list)):
+        sma = np.array(val_list[ix - average_over_n : ix]).sum() / average_over_n
         smas.append(sma)
     
     return smas

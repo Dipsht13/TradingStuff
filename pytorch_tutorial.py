@@ -144,9 +144,18 @@ with torch.no_grad():
     print('Got ' + str(correct) + '/30 (' + str(round(correct/30*100, 2)) + '%) correct.')
 
 
+#can save the weights & baises of model for future use
+#in true python form, you reference it as an internal dict to the model
+torch.save(model.state_dict(), 'saved_nns/first_tutorial_fnn.pt')
 
+#to load the model in later start by initializing a blank one
+model_reloaded = Model()
 
+#saving/loading models is done through the internal state dict
+model_reloaded.load_state_dict(torch.load('saved_nns/first_tutorial_fnn.pt'))
 
+#can verify that everything loaded in correctly with
+model_reloaded.eval()
 
 
 
