@@ -13,6 +13,9 @@ iterations but pushing the script to an hour run time only improved the
 performance to ~49% and the loss function noticeably plateaus in the final
 10 minutes.
 
+Update: Fixed my fuck up in the MACD calc and got ~51% success rate with the
+        long run time version of the script.
+
 @author: amudek
 """
 
@@ -59,6 +62,41 @@ def RoundNearestN(val, roundoff):
     rounded_val = round(val / roundoff) * roundoff
     
     return rounded_val
+
+
+def NormalizeDfCols(df):
+    
+    import pandas as pd
+    
+    #NOTE: Assumes are columns are numeric in the input df.
+    for col in df.columns:
+        max_abs_val = max(abs(df[col]))
+        df[col] = df[col] / max_abs_val
+        
+    return df
+
+
+def NormalizeDfColsByGroup(df, groupings):
+    
+    import pandas as pd
+    
+    all_cols_in_a_group = []
+    #first find scalings by group
+    for group in groupings:
+        max_abs_val = 1
+        for col in group:
+            all_grouped_cols.append(col)
+            local_max_abs_val = max(abs(df[col]))
+            max_abs_val = max([max_abs_val, local_max_abs_val])
+        #now we have the scaling factor for the group; apply it to each col
+        for col in group:
+            df[col] = df[col] / max_abs_val
+            
+    
+    loner_cols = list(set(df.columns) - set(all_cols_in_a_group))
+    df[loner_cols] = NormalizedDfCols(df[loner_cols])    
+    
+    return df
 
 
 #%% collect data
@@ -141,6 +179,8 @@ y_dat = one_week_dat['1-week'].copy()
 
 x_dat = x_dat.iloc[-2100:].copy()
 y_dat = y_dat.iloc[-2100:].copy()
+
+x_dat = NormalizeDfCols(x_dat)
 
 x_dat = x_dat.values
 y_dat = y_dat.values

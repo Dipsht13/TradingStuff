@@ -485,7 +485,7 @@ def EMAOnList(val_list, average_over_n, weight = 2):
         emas.append(trailing_ema)
     
     #now that we have a non-nan starting point, compute the emas
-    for ix in range(starting_ix, len(df)):
+    for ix in range(starting_ix, len(val_list)):
         ema = k * val_list[ix] + trailing_ema * (1 - k)
         # ema = k * (df[col].iloc[ix] - previous) + previous
         emas.append(ema)
