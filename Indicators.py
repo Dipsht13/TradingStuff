@@ -591,19 +591,19 @@ def Aroon(df, aroon_period = 25):
     if aroon_period >= len(df):
         return ['InputError: Lol what you trying to do there bud?'] * len(df)
     
-    aroon_ups   = [np.nan] * aroon_period
-    aroon_downs = [np.nan] * aroon_period
-    for ix in range(aroon_period, len(df)):
-        trailing_periods = df.iloc[ix - aroon_period : ix]
+    aroon_ups   = [np.nan] * (aroon_period + 1)
+    aroon_downs = [np.nan] * (aroon_period + 1)
+    for ix in range(aroon_period + 1, len(df)):
+        trailing_periods = df.iloc[ix - aroon_period - 1 : ix]
         
         #need to know when the highest high and lowest low occurred
         highest_high_ix = trailing_periods['High'].argmax()
         lowest_low_ix = trailing_periods['Low'].argmin()
-        
+              
         #how many time periods (whatever your df time steps are) have passed 
         # since each happened?
-        periods_since_high = ix - highest_high_ix
-        periods_since_low = ix - lowest_low_ix
+        periods_since_high = aroon_period - highest_high_ix
+        periods_since_low = aroon_period - lowest_low_ix
         
         #now plug these into Aroon formulae
         aroon_up = (1 - periods_since_high / aroon_period) * 100
