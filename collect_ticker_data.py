@@ -14,6 +14,11 @@ tic = time.time()
 
 
 tickers_of_interest = ['^SPX', 'BTC-USD']
+# tickers_of_interest = ['ALGT', 'AMZN', 'AMGN', 'AAPL', 'BA', 'CCL', 'CI', 'DAL', 
+#                        'DIS', 'XOM', 'GOOG', 'GTBIF', 'JPM', 'LMT', 'MCD', 'MSFT', 
+#                        'MS', 'NET', 'PEP', 'RCL', 'LUV', 'TSNDF', 'TCNNF', 'WMT', 
+#                        'WBD', 'WFC', 'WTFC', 'YUM']
+
 sma_periods = [5, 20, 100]
 ema_periods = [5, 20]
 atr_periods = [14]
@@ -21,7 +26,9 @@ atr_periods = [14]
 save_data = True
 save_folder = 'saved_data/'
 
+
 ticker_data = fdr.RetrieveData(tickers_of_interest, 
+                               start_date = '2015-01-01',
                                yrs_to_keep = 5, 
                                sma_periods = sma_periods, 
                                ema_periods = ema_periods, 

@@ -269,7 +269,11 @@ def VWAP(df):
         
         temp['Typical Price'] = temp[['High', 'Low', 'Close']].sum(axis = 1) / 3
         temp['PV'] = temp['Typical Price'] * temp['Volume']
-        vwap = temp['PV'].sum() / temp['Volume'].sum()
+        
+        if temp['Volume'].sum() == 0:
+            vwap = 0
+        else:
+            vwap = temp['PV'].sum() / temp['Volume'].sum()
         
         vwaps = vwaps + [vwap] * len(temp) #returning the same value for all rows related to the current day
                 
@@ -559,6 +563,9 @@ def MovingAverageConvergenceDivergence(df, col = 'Close', ema1_period = 12, ema2
     output_df = MACD(df, col, ema1_period, ema2_period, signal_period)
     
     return output_df
+
+
+# def IMACD()
 
 
 def Aroon(df, aroon_period = 25):

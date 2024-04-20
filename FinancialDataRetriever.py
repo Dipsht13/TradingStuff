@@ -201,6 +201,7 @@ def RetrieveData(tickers, start_date = '2000-01-01', end_date = None,
 
     data = {}
     for ticker in tickers:
+        print(ticker, end = '..')
         data[ticker] = GetTickerData(ticker, start_date = start_date, end_date = end_date,
                                      wks_to_keep = wks_to_keep, sma_periods = sma_periods,
                                      ema_periods = ema_periods, atr_periods = atr_periods)
