@@ -13,6 +13,14 @@ With the rnn examples in this video:
 https://www.youtube.com/watch?v=Gl2WXLIMvKA
 
 
+The rnn video covers the code but doesn't do a good job explaining what's going
+on. The following videos give some good backstory/illustration to how RNNs work
+and how GRUs and LSTMs are different:
+    
+https://www.youtube.com/watch?v=LHXXI4-IEns
+https://www.youtube.com/watch?v=8HyCNIVRbSU
+
+
 @author: amude
 """
 
