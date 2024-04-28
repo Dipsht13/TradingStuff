@@ -2,6 +2,17 @@
 """
 Created on Sat Apr 20 11:19:33 2024
 
+
+Modifying my cnn script from the end of the tutorial playlist:
+    
+https://www.youtube.com/playlist?list=PLCC34OHNcOtpcgR9LEYSdi9r7XIbpkpK1
+
+
+With the rnn examples in this video:
+    
+https://www.youtube.com/watch?v=Gl2WXLIMvKA
+
+
 @author: amude
 """
 
