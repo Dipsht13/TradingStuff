@@ -54,7 +54,7 @@ def SMA200v50(df, col):
     
     sma_diff = list(sma50 - sma200)
     
-    sma_signal = []
+    sma_signal = [0]
     for ix in range(1, len(sma_diff)):
         preceeding = sma_diff[ix-1]
         current = sma_diff[ix]
@@ -97,7 +97,7 @@ def RSISignal(df, col, n_rows):
     rsi_vals = Indicators.RSI(df, col, n_rows)
     
     rsi_signal = []
-    for val in RSIvals:
+    for val in rsi_vals:
         if val >= 70:
             rsi_signal.append(-1)
         elif val <= 30:

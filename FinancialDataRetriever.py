@@ -12,6 +12,8 @@ import _pickle as pkl
 
 import yfinance as yf
 import Indicators
+import Signals
+import numpy as np
 
 
 def RoundNearestN(val, roundoff):
@@ -43,9 +45,7 @@ def RoundNearestN(val, roundoff):
 
 
 def NormalizeDfCols(df):
-    
-    import pandas as pd
-    
+        
     df = df.copy()
     #NOTE: Assumes are columns are numeric in the input df.
     for col in df.columns:
@@ -55,16 +55,14 @@ def NormalizeDfCols(df):
     return df
 
 
-def NormalizeDfColsByGroup(df, groupings):
-    
-    import pandas as pd
-    
+def NormalizeDfColsByGroup(df, groupings, cols_to_ignore = []):
+        
     df = df.copy()
     
     all_cols_in_a_group = []
     #first find scalings by group
     for group in groupings:
-        max_abs_val = 1
+        max_abs_val = 0
         for col in group:
             all_cols_in_a_group.append(col)
             local_max_abs_val = max(abs(df[col]))
@@ -74,15 +72,54 @@ def NormalizeDfColsByGroup(df, groupings):
             df[col] = df[col] / max_abs_val
             
     
-    loner_cols = list(set(df.columns) - set(all_cols_in_a_group))
+    loner_cols = set(df.columns) - set(all_cols_in_a_group)
+    loner_cols = loner_cols - set(cols_to_ignore)
+    loner_cols = list(loner_cols)
+    
     df[loner_cols] = NormalizeDfCols(df[loner_cols])    
     
     return df
 
 
-def GetTickerData(ticker, start_date = '2000-01-01', end_date = None, yrs_to_keep = None, 
-                  wks_to_keep = None, sma_periods = [20], ema_periods = [20], 
-                  atr_periods = [14]):
+def CreateBins(percChange, lower_threshold = 0.02, upper_threshold = 0.05):
+    
+    if percChange < -upper_threshold:
+        return 0 # big decrease: more than a 5% decrease
+    elif -upper_threshold <= percChange < -lower_threshold:
+        return 1 # medium decrease: decreased by 2%-5%
+    elif -lower_threshold <= percChange < lower_threshold:
+        return 2 # level: change within +/-2%
+    elif lower_threshold <= percChange < upper_threshold:
+        return 3 # medium increase: increased by 2%-5%
+    elif upper_threshold <= percChange:
+        return 4 # big increase: more than a 5% increase
+    else:
+        return "how?"
+
+
+def SeeTheFuture(df, how_far, unit = 'day'):
+    
+    # note: 1 "day" is actually just offsetting the data by 1 row
+    if (unit.lower() == 'day') or (unit.lower() == 'days'):
+        shiftVal = how_far
+    elif (unit.lower() == 'week') or (unit.lower() == 'weeks'):
+        shiftVal = how_far * 5
+    else:
+        return 'What kind of a unit is ' + unit + '?'
+    
+    temp = df[['Open', 'Close']].copy()
+    
+    temp['1-' + unit + ' future'] = temp['Close'].shift(-how_far)
+    temp['1-' + unit + ' perc change'] = (temp['1-' + unit + ' future'] - temp['Close']) / temp['Close']
+    temp['1-' + unit + ' bin'] = temp['1-' + unit + ' perc change'].map(CreateBins)
+    
+    return temp[['1-' + unit + ' perc change', '1-' + unit + ' bin']]
+
+
+def GetTickerDataAll(ticker, start_date = '2000-01-01', end_date = None, yrs_to_keep = None, 
+                     wks_to_keep = None, sma_periods = [20], ema_periods = [20], 
+                     atr_periods = [14]):
+    
     tkr = yf.Ticker(ticker)
     
     dat = tkr.history(start = '2000-01-01', end = None, interval = '1d')
@@ -148,6 +185,58 @@ def GetTickerData(ticker, start_date = '2000-01-01', end_date = None, yrs_to_kee
     return dat
 
 
+def GetTickerDataAbridged(ticker, start_date = '2000-01-01', end_date = None, yrs_to_keep = None, 
+                          wks_to_keep = None):
+    
+    tkr = yf.Ticker(ticker)
+    
+    dat = tkr.history(start = start_date, end = end_date, interval = '1d')
+    
+    dat = dat[['Open', 'High', 'Low', 'Close', 'Volume']]
+    
+    dat['Range'] = dat['High'] - dat['Low']
+    dat['Diff'] = dat['Close'] - dat['Open']
+    
+    cols_not_to_normalize = []
+    for ix in [1, 2, 3, 4, 5]:
+        
+        strix = str(ix)
+        dat[[strix + '-day perc change', strix + '-day bin']] = SeeTheFuture(dat, ix)
+        
+        cols_not_to_normalize = cols_not_to_normalize + [strix + '-day perc change', strix + '-day bin']
+    
+    
+    dat[['SMA 200-Day', 'SMA 200-Day Lower Boll', 'SMA 200-Day Upper Boll']] = Indicators.SMA(dat, 'Close', 200, bollinger_bands = True)
+    dat['SMA 50-Day']  = Indicators.SMA(dat, 'Close', 50, bollinger_bands = False)
+    dat['SMA Signal'] = Signals.SMA200v50(dat, 'Close')
+    
+    dat['EMA 200-Day'] = Indicators.EMA(dat, 'Close', 200)
+    dat['EMA 50-Day']  = Indicators.EMA(dat, 'Close', 50)
+    
+    dat['RSI'] = Indicators.RSI(dat, 'Close', 14)
+    dat['RSI Signal'] = Signals.RSISignal(dat, 'Close', 14)
+    
+    dat['VWAP'] = Indicators.VWAP(dat)
+    
+    dat[['MACD', 'MACD Signal', 'MACD Histogram']] = Indicators.MACD(dat)
+    
+    if yrs_to_keep:
+        back_ix = yrs_to_keep * 52 * 5
+    elif wks_to_keep:
+        back_ix = wks_to_keep * 5
+        
+    dat = dat.iloc[-back_ix:]
+    dat.index = dat.index.tz_localize(None) #remove time information, just use dates
+    
+    dat = NormalizeDfColsByGroup(dat, 
+                                 [['Open', 'High', 'Low', 'Close',
+                                   'SMA 200-Day', 'SMA 200-Day Lower Boll', 'SMA 200-Day Upper Boll',
+                                   'SMA 50-Day', 'EMA 200-Day', 'EMA 50-Day', 'VWAP']],
+                                 cols_to_ignore = cols_not_to_normalize)
+    
+    return dat
+
+
 def RetrieveData(tickers, start_date = '2000-01-01', end_date = None, 
                  yrs_to_keep = None, wks_to_keep = None, sma_periods = [20],
                  ema_periods = [20], atr_periods = [14]):
@@ -175,18 +264,6 @@ def RetrieveData(tickers, start_date = '2000-01-01', end_date = None,
         How many weeks of data to return. Use either this variable or
         yrs_to_keep. If both are provided then yrs_to_keep will be used. 
         The default is None.
-    sma_periods : List, optional
-        List of periods (rows) to be used for calculating the Simple Moving 
-        Average. If you don't want any, provide a blank list. The default 
-        is [20].
-    ema_periods : TYPE, optional
-        List of periods (rows) to be used for calculating the Exponential 
-        Moving Average. If you don't want any, provide a blank list. The 
-        default is [20].
-    atr_periods : TYPE, optional
-        List of periods (rows) to be used for calculating the Average True
-        Range. If you don't want any, provide a blank list. The default 
-        is [14].
 
     Returns
     -------
@@ -200,11 +277,16 @@ def RetrieveData(tickers, start_date = '2000-01-01', end_date = None,
         wks_to_keep = yrs_to_keep * 52
 
     data = {}
+    print('Collecting data for the following tickers:\n')
     for ticker in tickers:
         print(ticker, end = '..')
-        data[ticker] = GetTickerData(ticker, start_date = start_date, end_date = end_date,
-                                     wks_to_keep = wks_to_keep, sma_periods = sma_periods,
-                                     ema_periods = ema_periods, atr_periods = atr_periods)
-        
+        data[ticker] = GetTickerDataAbridged(ticker, start_date = start_date, end_date = end_date,
+                                             wks_to_keep = wks_to_keep)
+        # data[ticker] = GetTickerDataAll(ticker, start_date = start_date, end_date = end_date,
+        #                                 wks_to_keep = wks_to_keep, sma_periods = sma_periods,
+        #                                 ema_periods = ema_periods, atr_periods = atr_periods)
+    
+    print('Done.\n')
+    
     return data
 
