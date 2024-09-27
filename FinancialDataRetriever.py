@@ -197,7 +197,7 @@ def GetTickerDataAbridged(ticker, start_date = '2000-01-01', end_date = None, yr
     dat['Range'] = dat['High'] - dat['Low']
     dat['Diff'] = dat['Close'] - dat['Open']
     
-    cols_not_to_normalize = []
+    cols_not_to_normalize = ['Open', 'High', 'Low', 'Close']
     for ix in [1, 2, 3, 4, 5]:
         
         strix = str(ix)
@@ -224,15 +224,18 @@ def GetTickerDataAbridged(ticker, start_date = '2000-01-01', end_date = None, yr
         back_ix = yrs_to_keep * 52 * 5
     elif wks_to_keep:
         back_ix = wks_to_keep * 5
+    else:
+        back_ix = len(dat) # keep everything
         
     dat = dat.iloc[-back_ix:]
-    dat.index = dat.index.tz_localize(None) #remove time information, just use dates
+    # dat.index = dat.index.tz_localize(None) #remove time information, just use dates
     
     dat = NormalizeDfColsByGroup(dat, 
-                                 [['Open', 'High', 'Low', 'Close',
-                                   'SMA 200-Day', 'SMA 200-Day Lower Boll', 'SMA 200-Day Upper Boll',
+                                 [['SMA 200-Day', 'SMA 200-Day Lower Boll', 'SMA 200-Day Upper Boll',
                                    'SMA 50-Day', 'EMA 200-Day', 'EMA 50-Day', 'VWAP']],
                                  cols_to_ignore = cols_not_to_normalize)
+    
+    dat.reset_index(inplace = True)
     
     return dat
 

@@ -15,9 +15,12 @@ tic = time.time()
 
 tickers_of_interest = ['^SPX', 'NVDA', 'BTC-USD', 'ETH-USD']
 tickers_from_dad = ['ALGT', 'AAPL', 'LMT', 'PEP', 'YUM', 'MSFT',
-                    'JPM', 'WMT', 'WFC', 'AMZN']
+                    'JPM', 'WMT', 'WFC', 'AMZN', 'CCL']
+tickers_from_joey = ['NOC', 'RTX', 'BA']
+tickers_from_kyle = ['AMD', 'INTC', 'META', 'GOOG', 'CEG', 'VST', 'MOD', 'LII', 'CARR']
 
-tickers_of_interest = tickers_of_interest + tickers_from_dad
+tickers_of_interest = tickers_of_interest + tickers_from_dad + tickers_from_joey + tickers_from_kyle
+tickers_of_interest = list(pd.Series(tickers_of_interest).unique()) # remove any duplicates
 # tickers_of_interest = ['^SPX', 'NVDA', 'BTC-USD', 'ETH-USD']
 # tickers_of_interest = ['ALGT', 'AMZN', 'AMGN', 'AAPL', 'BA', 'CCL', 'CI', 'DAL', 
 #                        'DIS', 'XOM', 'GOOG', 'GTBIF', 'JPM', 'LMT', 'MCD', 'MSFT', 
@@ -28,7 +31,7 @@ sma_periods = [20, 50, 200]
 ema_periods = [5, 20]
 atr_periods = [14]
 
-save_data = True
+save_data = False
 save_folder = 'saved_data/'
 
 

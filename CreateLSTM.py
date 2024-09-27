@@ -20,7 +20,7 @@ import time
 start = time.time()
 
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')  
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Model Class
 class LSTM(nn.Module):
