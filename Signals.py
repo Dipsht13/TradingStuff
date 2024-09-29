@@ -108,5 +108,54 @@ def RSISignal(df, col, n_rows):
     return rsi_signal
     
     
+def EngulfingCandle(df):
+    """
+    Function to find when engulfing candles occur. Engulfing candles occur
+    when the body of a day's candle completely covers the previous day's. 
+    This can be found by comparing the current day's Open with the previous
+    day's Close and the current day's Close with the previous day's Open. 
+    The candle color must change between the two days to be considered.
+    Engulfing candles can be bullish or bearish. Their criteria are:
+        Bullish
+            Candle switched from red to green. The current Open is lower
+            than the previous Close and the current Close is greater than
+            the previous Open.
+        Bearish
+            Candle switched from green to red. The current Open is greater
+            than the previous Close and the current Close is lower than
+            the previous Open.
     
+    
+    Parameters
+    ----------
+    df : DataFrame
+        Pandas dataframe containing price history.
+
+    Returns
+    -------
+    engulfing_candles : List
+        List of integers that are either -1, 0, or +1. A -1 indicates a 
+        bearish engulfing candle. A +1 indicates a bullish engulfing candle.
+        A 0 means there's no engulfing candle here. This list can be 
+        directly added as a new col to the df.
+
+    """
+    
+    engulfing_candles = [0] # needs trailing info so the first row is just 0
+    
+    for ix in range(1, len(df)):
+        current_open = df.iloc[ix]['Open']
+        current_close = df.iloc[ix]['Close']
+        
+        previous_open = df.iloc[ix-1]['Open']
+        previous_close = df.iloc[ix-1]['Close']
+        
+        if (current_open < previous_close) and (current_close > previous_open):
+            engulfing_candles.append(1)
+        elif (current_open > previous_close) and (current_close < previous_open):
+            engulfing_candles.append(-1)
+        else:
+            engulfing_candles.append(0)
+            
+    return engulfing_candles
     

@@ -220,6 +220,9 @@ def GetTickerDataAbridged(ticker, start_date = '2000-01-01', end_date = None, yr
     
     dat[['MACD', 'MACD Signal', 'MACD Histogram']] = Indicators.MACD(dat)
     
+    dat['Engulfing Candle'] = Signals.EngulfingCandle(dat)
+    cols_not_to_normalize.append('Engulfing Candle')
+    
     if yrs_to_keep:
         back_ix = yrs_to_keep * 52 * 5
     elif wks_to_keep:

@@ -23,6 +23,13 @@ def CreateDB(ticker_list = [], start_date = None, end_date = None,
         print(ticker, end = '..')
         dat = fdr.GetTickerDataAbridged(ticker, start_date = start_date, end_date = end_date)
         
+        dat['Year'] = dat['Date'].dt.year
+        dat['Month'] = dat['Date'].dt.month
+        dat['Day'] = dat['Date'].dt.day
+        dat['Hour'] = dat['Date'].dt.hour
+        dat['Minute'] = dat['Date'].dt.minute
+        dat['Second'] = dat['Date'].dt.second
+        
         # dat.reset_index(inplace = True)
         # dat['Date'] = dat['Date'].dt.date # only want the date; no time
         dat['Ticker'] = [ticker] * len(dat)
@@ -34,17 +41,14 @@ def CreateDB(ticker_list = [], start_date = None, end_date = None,
     return
     
     
-def UpdateDB(db = None):
+def UpdateDB(db):
     
     import pandas as pd
     import FinancialDataRetriever as fdr
     import time
     
     start = time.time()    
-    
-    if ~db:
-        return 'Forgetting something there Tex?'
-    
+        
     print('Updating database ' + db)
     print('Checking database time bounds and ticker list', end = '...')
     con = sql.connect(db)
@@ -82,6 +86,39 @@ def UpdateDB(db = None):
     return
     
     
-
+def PullData(db, ticker_list = [], start_date = None, end_date = None):
+    
+    import pandas as pd
+    
+    query_str = 'SELECT * from ticker_history WHERE '
+    
+    if len(ticker_list) > 0:
+        query_str = query_str + "ticker IN ('" + "','".join(ticker_list) + "') AND "
+        
+    # note: Not going to be precise about the date for the initial query. That
+    #       would be difficult to do since the dates are stored as strings. 
+    #       Just needs to be close enough to avoid an unecessarily large data 
+    #       pull. Will simply make sure we're starting in the right year.
+    if start_date:
+        temp = pd.to_datetime(start_date)
+        query_str = query_str + 'Year >= ' + str(temp.year) + ' AND '
+    
+    # note: See start_date note.
+    if end_date:
+        temp = pd.to_datetime(end_date)
+        query_str = query_str + 'Year <= ' + str(temp.year) + ' AND '
+        
+    # now we need to remove the trailing end of the string (" WHERE " or " AND ")
+    if query_str.endswith(' WHERE '):
+        query_str = query_str[:-7]
+    elif query_str.endswith(' AND '):
+        query_str = query_str[:-5]
+        
+    con = sql.connect(db)
+    
+    df = pd.read_sql(query_str, con)
+    
+    return df
+    
     
     
