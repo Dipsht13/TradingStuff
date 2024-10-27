@@ -31,7 +31,7 @@ sma_periods = [20, 50, 200]
 ema_periods = [5, 20]
 atr_periods = [14]
 
-save_data = False
+save_data = True
 save_folder = 'saved_data/'
 
 

@@ -239,6 +239,7 @@ def GetTickerDataAbridged(ticker, start_date = '2000-01-01', end_date = None, yr
                                  cols_to_ignore = cols_not_to_normalize)
     
     dat.reset_index(inplace = True)
+    dat['Date'] = dat['Date'].dt.tz_localize(None)
     
     return dat
 
